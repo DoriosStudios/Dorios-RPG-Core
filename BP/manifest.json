@@ -1,0 +1,63 @@
+{
+	"format_version": 2,
+	"metadata": {
+		"authors": [
+			"Dorios Studios"
+		]
+	},
+	"header": {
+		"name": "Dorios RPG Core",
+		"description": "v1.0.0 - Used to power RPG-style addons in Minecraft Bedrock.",
+		"min_engine_version": [
+			1,
+			21,
+			80
+		],
+		"uuid": "1b5a8b40-fc9c-4128-81c7-27c45093d016",
+		"version": [
+			1,
+			0,
+			0
+		]
+	},
+	"modules": [
+		{
+			"type": "data",
+			"uuid": "13f54993-fe46-4985-b269-af4414a510c0",
+			"version": [
+				1,
+				0,
+				0
+			]
+		},
+		{
+			"type": "script",
+			"language": "javascript",
+			"uuid": "e81fa8c0-d436-4e9d-b3ce-0e496e4edf2d",
+			"entry": "scripts/main.js",
+			"version": [
+				1,
+				0,
+				0
+			]
+		}
+	],
+	"dependencies": [
+		{
+			"uuid": "764882f6-d9b7-4af9-ac34-19ed758ce42a",
+			"version": [
+				1,
+				0,
+				0
+			]
+		},
+		{
+			"module_name": "@minecraft/server",
+			"version": "2.1.0"
+		},
+		{
+			"module_name": "@minecraft/server-ui",
+			"version": "2.0.0"
+		}
+	]
+}

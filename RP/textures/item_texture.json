@@ -1,0 +1,13 @@
+{
+	"texture_data": {
+		"dorios_scroll": {
+			"textures": "textures/items/scroll"
+		},
+		"dorios_stats_scroll": {
+			"textures": "textures/items/stats_scroll"
+		},
+		"dorios_recover_scroll": {
+			"textures": "textures/items/recover_scroll"
+		}
+	}
+}

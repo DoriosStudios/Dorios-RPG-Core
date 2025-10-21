@@ -1,0 +1,47 @@
+{
+	"type": "minecraftBedrock",
+	"name": "Dorios RPG Core",
+	"namespace": "dorios",
+	"authors": [
+		"Dorios Studios"
+	],
+	"targetVersion": "1.21.80",
+	"description": "Dorios RPG Core for creating addons",
+	"experimentalGameplay": {
+		"creationOfCustomBiomes": false,
+		"upcomingCreatorFeatures": false,
+		"experimentalCreatorCameraFeatures": false,
+		"enableGameTestFramework": false,
+		"dataDrivenJigsawStructures": false,
+		"customComponentsV2": true,
+		"renderDragonFeatures": false,
+		"educationEdition": false
+	},
+	"bdsProject": true,
+	"packs": {
+		"behaviorPack": "./BP",
+		"resourcePack": "./RP"
+	},
+	"worlds": [
+		"./worlds/*"
+	],
+	"compiler": {
+		"plugins": [
+			"generatorScripts",
+			"typeScript",
+			"entityIdentifierAlias",
+			"customEntityComponents",
+			"customItemComponents",
+			"customBlockComponents",
+			"customCommands",
+			"moLang",
+			"formatVersionCorrection",
+			[
+				"simpleRewrite",
+				{
+					"packName": "Dorios RPG Core"
+				}
+			]
+		]
+	}
+}
