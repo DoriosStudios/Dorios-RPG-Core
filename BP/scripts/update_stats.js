@@ -1,5 +1,4 @@
 import { system, world, ItemStack } from '@minecraft/server'
-import * as doriosAPI from './doriosAPI.js'
 import { updatePlayerStats, getStatCategory } from './stats_manager.js'
 import { trinketTick } from './trinkets_inv.js'
 import { manaBarFrames } from './config.js'
@@ -35,7 +34,7 @@ world.beforeEvents.effectAdd.subscribe(e => {
  * Converts equipment and tags into a single string for comparison.
  */
 function equipmentAndTagsString(player) {
-    const equipment = doriosAPI.entities.getEquipment(player);
+    const equipment = player.getEquipment();
     const equipmentStr = ['Head', 'Chest', 'Legs', 'Feet', 'Mainhand', 'Offhand']
         .map(slot => equipment?.[slot]?.typeId ?? 'none')
         .join('|');
@@ -97,17 +96,17 @@ function updateData(player) {
 
 
         // Mana display and refill every 4 ticks (up to 5 times)
-        if (tick % 4 == 0) {
-            if (stats) {
-                const manaScore = world.scoreboard.getObjective('dorios:mana');
-                manaDisplay(manaScore, player, stats);
+        // if (tick % 4 == 0) {
+        //     if (stats) {
+        //         const manaScore = world.scoreboard.getObjective('dorios:mana');
+        //         manaDisplay(manaScore, player, stats);
 
-                // Health regeneration
-                if (stats.healthRegen > 0) {
-                    doriosAPI.entities.changeHealth(player, stats.healthRegen / 5);
-                }
-            }
-        }
+        //         // Health regeneration
+        //         if (stats.healthRegen > 0) {
+        //             doriosAPI.entities.changeHealth(player, stats.healthRegen / 5);
+        //         }
+        //     }
+        // }
 
 
         if (stats?.extraJumps > 0) {
@@ -131,6 +130,12 @@ function updateData(player) {
     intervalMap.set(id, interval);
 }
 
+/**
+ * Applies all passive status effects to a player based on their passive stats.
+ * Effects are refreshed periodically with a short duration to ensure persistence.
+ *
+ * @param {import('@minecraft/server').Player} player Player entity to apply passive effects to
+ */
 function applyPassiveEffects(player) {
     // Apply passive effects
     const passives = getStatCategory(player, "passives");

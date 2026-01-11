@@ -1,5 +1,4 @@
 import { system, world } from '@minecraft/server'
-import * as doriosAPI from './doriosAPI.js'
 import { getStatCategory } from './stats_manager.js'
 import { manaBarFrames } from './config.js'
 
@@ -21,7 +20,8 @@ const activesEffectHandlers = {
         );
     },
     lifeSteal: (_entity, value, attacker, _stats, context) => {
-        doriosAPI.entities.changeHealth(attacker, (value / 100) * context.damage)
+        const lifeStealValue = (value / 100) * context.damage
+        attacker.addHealth(lifeStealValue)
     },
     manaSteal: (_entity, value, attacker, stats) => {
         let manaScore = world.scoreboard.getObjective('dorios:mana');

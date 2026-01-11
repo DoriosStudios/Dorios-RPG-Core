@@ -1,5 +1,4 @@
 import { system, ItemStack, world } from '@minecraft/server'
-import * as doriosAPI from './doriosAPI.js'
 import { data, slots } from './config.js'
 import { getStatCategory, displayStats } from './stats_manager.js'
 
@@ -11,7 +10,7 @@ world.afterEvents.itemUse.subscribe(e => {
 })
 
 export function trinketTick(player) {
-    let mainHand = doriosAPI.entities.getEquipment(player, "Mainhand")
+    let mainHand = player.getEquipment("Mainhand")
     if (!mainHand || mainHand?.typeId != 'dorios:scroll') {
         const entity = getInvEntity(player)
         if (entity) entity.remove()
@@ -21,7 +20,7 @@ export function trinketTick(player) {
         const mainHandSlot = player.selectedSlotIndex
 
         system.runTimeout(() => {
-            if (doriosAPI.entities.getEquipment(player, "Mainhand")?.typeId == mainHand?.typeId) {
+            if (player.getEquipment("Mainhand")?.typeId == mainHand?.typeId) {
                 mainHand.lockMode = "slot"
                 player.getComponent('inventory').container.setItem(mainHandSlot, mainHand)
             } else {
@@ -190,7 +189,7 @@ function tryEquipTrinket(player, item) {
     // Todo ok, se equipa
     player.addTag(id);
     clearTrinketImmuneEffects(player, entry)
-    doriosAPI.entities.changeItemAmount(player, player.selectedSlotIndex, -1)
+    player.changeItemAmount(player.selectedSlotIndex, -1)
 }
 
 /**

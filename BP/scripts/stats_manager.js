@@ -1,7 +1,6 @@
 import { system, world } from '@minecraft/server'
-import * as doriosAPI from './doriosAPI.js'
 import { ActionFormData } from '@minecraft/server-ui'
-import { data, statsConfig, statTexts, vanillaStats, vanillaEventStats, scriptEventsHandler, endlessAgonyFormats } from './config.js'
+import { data, statsConfig, statTexts, vanillaStats, vanillaEventStats, scriptEventsHandler } from './config.js'
 
 system.afterEvents.scriptEventReceive.subscribe((e) => {
     const event = scriptEventsHandler[e.id]

@@ -1,31 +1,64 @@
-import { system, world, ItemStack } from '@minecraft/server'
+import { Entity, ItemStack } from '@minecraft/server'
 
 /**
- * Utility functions related to entities for Dorios API.
+ * @typedef {import('@minecraft/server').Entity & EntityExtensions} DoriosEntity
  */
-export const entities = {
+
+/**
+ * @typedef {Object} EntityExtensions
+ * @property {(item: ItemStack|string, amount?: number, shouldSpawn?: boolean) => void} addItem
+ * @property {(slot: number, amount: number) => boolean} changeItemAmount
+ * @property {(slot: number, item: ItemStack|string, amount?: number, name?: string) => boolean} setItem
+ * @property {() => ItemStack[]} getItems
+ * @property {(item: string|ItemStack) => {slot:number,item:ItemStack}|undefined} findItem
+ * @property {(excludeIds?: string[]) => void} dropAllItems
+ * @property {(slot:number)=>ItemStack|undefined} getItem
+ * @property {(id:string, amount?:number)=>boolean} hasItem
+ * @property {(excludeIds?: string[])=>void} clearInventory
+ * @property {(id:string, amount?:number)=>boolean} removeItem
+ * @property {(id:string)=>number} countItem
+ * @property {()=>number|undefined} getHealth
+ * @property {(value:number)=>boolean} setHealth
+ * @property {(delta:number)=>boolean} addHealth
+ * @property {()=>{current:number,max:number,missing:number,percentage:number}|undefined} getHealthInfo
+ * @property {(slot?:string)=>ItemStack|Object|undefined} getEquipment
+ * @property {(slot:string,item:ItemStack)=>boolean} setEquipment
+ * @property {()=>number} findFirstEmptySlot
+ * @property {(item:ItemStack)=>number} setInFirstEmptySlot
+ * @property {()=>boolean} isInventoryFull
+ * @property {(item:ItemStack,amount:number,slot?:number)=>ItemStack|null} repairItemInSlot
+ * @property {(item:ItemStack,amount:number,slot?:number)=>ItemStack|null} damageItemInSlot
+ */
+
+
+/**
+ * Extend Entity prototype with custom methods for DoriosAPI.
+ * Includes inventory management, health control, equipment handling,
+ * and item durability operations.
+ */
+/** @type {{ [K in keyof EntityExtensions]: (this: DoriosEntity, ...args: any[]) => any }} */
+const entityExtensions = {
     /**
      * Adds an item to the entity's inventory or drops it at the entity's location if the inventory is full.
      *
-     * @param {Entity} entity The target entity to receive the item.
      * @param {ItemStack|string} item The item to add. Can be an ItemStack or an item identifier string.
      * @param {number} [amount=1] Amount of the item if a string is provided. Ignored if item is an ItemStack.
+     * @param {boolean} [shouldSpawn=false]
      */
-    addItem(entity, item, amount = 1) {
-        if (!entity?.getComponent || !entity.getComponent('inventory')) return;
+    addItem(item, amount = 1, shouldSpawn) {
+        if (!this?.getComponent || !this.getComponent('inventory')) return;
 
-        const inventory = entity.getComponent('inventory');
+        const inventory = this.getComponent('inventory');
         const invContainer = inventory.container;
 
         const itemStack = typeof item === 'string'
             ? new ItemStack(item, amount)
             : item;
 
-        const added = invContainer.addItem(itemStack);
-
-        if (!added) {
-            const loc = entity.location;
-            entity.dimension.spawnItem(itemStack, loc);
+        if (this.isInventoryFull() && shouldSpawn) {
+            this.dimension.spawnItem(itemStack, this.location);
+        } else {
+            invContainer.addItem(itemStack);
         }
     },
 
@@ -36,13 +69,12 @@ export const entities = {
      * - Negative `amount` removes items.
      * - Fails if the slot is empty, exceeds the stack limit, or goes below zero.
      *
-     * @param {Entity} entity The entity with an inventory.
      * @param {number} slot The inventory slot index to modify.
      * @param {number} amount The amount to add (positive) or remove (negative).
      * @returns {boolean} Whether the operation was successful.
      */
-    changeItemAmount(entity, slot, amount) {
-        const inventory = entity.getComponent('inventory');
+    changeItemAmount(slot, amount) {
+        const inventory = this.getComponent('inventory');
         if (!inventory) return false;
 
         const inv = inventory.container;
@@ -54,7 +86,7 @@ export const entities = {
         if (newAmount > item.maxAmount || newAmount < 0) return false;
 
         if (newAmount === 0) {
-            inv.setItem(slot, undefined); // Clears slot
+            inv.setItem(slot, undefined);
         } else {
             item.amount = newAmount;
             inv.setItem(slot, item);
@@ -69,14 +101,14 @@ export const entities = {
      * - Accepts either an ItemStack or a string with amount.
      * - Overwrites any existing item in the slot.
      *
-     * @param {Entity} entity The entity with an inventory.
      * @param {number} slot The inventory slot index to set.
      * @param {ItemStack|string} item The item to place (ItemStack or item ID string).
      * @param {number} [amount=1] Amount if item is a string. Ignored for ItemStack.
+     * @param {string} [name] Name for the itemStack.
      * @returns {boolean} Whether the operation was successful.
      */
-    setItem(entity, slot, item, amount = 1) {
-        const inventory = entity.getComponent('inventory');
+    setItem(slot, item, amount = 1, name) {
+        const inventory = this.getComponent('inventory');
         if (!inventory) return false;
 
         const inv = inventory.container;
@@ -84,7 +116,7 @@ export const entities = {
         const itemStack = typeof item === 'string'
             ? new ItemStack(item, amount)
             : item;
-
+        if (name) itemStack.nameTag = name
         try {
             inv.setItem(slot, itemStack);
             return true;
@@ -99,11 +131,10 @@ export const entities = {
      * - Skips empty slots.
      * - Returns an empty array if the entity has no inventory.
      *
-     * @param {Entity} entity The entity to get inventory items from.
      * @returns {ItemStack[]} Array of items present in the inventory.
      */
-    getItems(entity) {
-        const inventory = entity.getComponent('inventory');
+    getItems() {
+        const inventory = this.getComponent('inventory');
         if (!inventory) return [];
 
         const container = inventory.container;
@@ -123,12 +154,11 @@ export const entities = {
      * - If a string is provided, searches by item identifier.
      * - If an ItemStack is provided, uses container.find to locate it.
      * 
-     * @param {Entity} entity The entity to search in.
      * @param {string|ItemStack} item Item identifier or ItemStack to search for.
      * @returns {{ slot: number, item: ItemStack }|undefined} Found item with slot, or undefined.
      */
-    findItem(entity, item) {
-        const inventory = entity.getComponent('inventory');
+    findItem(item) {
+        const inventory = this.getComponent('inventory');
         if (!inventory) return;
 
         const container = inventory.container;
@@ -159,21 +189,18 @@ export const entities = {
      * Drops all items from the entity's inventory at its current location,
      * excluding any item with a typeId present in the optional exclude list.
      * 
-     * @param {Entity} entity The entity whose inventory items will be dropped.
      * @param {string[]} [excludeIds=[]] Optional array of item identifiers to exclude.
      */
-    dropAllItems(entity, excludeIds = []) {
-        const inventory = entity.getComponent('inventory');
+    dropAllItems(excludeIds = []) {
+        const inventory = this.getComponent('inventory');
         if (!inventory) return;
 
         const container = inventory.container;
-        const location = entity.location;
-        const dimension = entity.dimension;
 
         for (let i = 0; i < container.size; i++) {
             const item = container.getItem(i);
             if (item && !excludeIds.includes(item.typeId)) {
-                dimension.spawnItem(item, location);
+                this.dimension.spawnItem(item, this.location);
                 container.setItem(i, undefined);
             }
         }
@@ -182,27 +209,23 @@ export const entities = {
     /**
      * Gets the item in the specified inventory slot of an entity.
      * 
-     * @param {Entity} entity The entity whose inventory to access.
      * @param {number} slot The inventory slot index to read.
      * @returns {ItemStack|undefined} The item in the slot, or undefined if empty or invalid.
      */
-    getItem(entity, slot) {
-        const inventory = entity.getComponent('inventory');
-        if (!inventory) return;
-
-        return inventory.container.getItem(slot);
+    getItem(slot) {
+        const inventory = this.getComponent('inventory');
+        return inventory?.container.getItem(slot);
     },
 
     /**
      * Checks if the entity has a specific item in its inventory.
      * 
-     * @param {Entity} entity The entity to check.
      * @param {string} id The item identifier to look for.
      * @param {number} [amount=1] Minimum amount required.
      * @returns {boolean} Whether the item exists in sufficient quantity.
      */
-    hasItem(entity, id, amount = 1) {
-        const inventory = entity.getComponent('inventory');
+    hasItem(id, amount = 1) {
+        const inventory = this.getComponent('inventory');
         if (!inventory) return false;
 
         const container = inventory.container;
@@ -220,11 +243,10 @@ export const entities = {
     /**
      * Clears the entity's inventory, optionally skipping certain item IDs.
      * 
-     * @param {Entity} entity - The entity whose inventory will be cleared.
      * @param {string[]} [excludeIds=[]] - Item IDs to keep.
      */
-    clearInventory(entity, excludeIds = []) {
-        const inventory = entity.getComponent('inventory');
+    clearInventory(excludeIds = []) {
+        const inventory = this.getComponent('inventory');
         if (!inventory) return;
 
         const container = inventory.container;
@@ -240,13 +262,12 @@ export const entities = {
     /**
      * Removes a specific amount of items from the entity's inventory.
      * 
-     * @param {Entity} entity - The entity to remove items from.
      * @param {string} id - The item identifier to remove.
      * @param {number} [amount=1] - The quantity to remove.
      * @returns {boolean} Whether the removal was successful.
      */
-    removeItem(entity, id, amount = 1) {
-        const inventory = entity.getComponent('inventory');
+    removeItem(id, amount = 1) {
+        const inventory = this.getComponent('inventory');
         if (!inventory) return false;
 
         const container = inventory.container;
@@ -273,12 +294,11 @@ export const entities = {
     /**
      * Counts the total number of items with a specific identifier in the entity's inventory.
      * 
-     * @param {Entity} entity The entity to search in.
      * @param {string} id The item identifier to count.
      * @returns {number} Total amount found in the inventory.
      */
-    countItem(entity, id) {
-        const inventory = entity.getComponent('inventory');
+    countItem(id) {
+        const inventory = this.getComponent('inventory');
         if (!inventory) return 0;
 
         const container = inventory.container;
@@ -295,40 +315,39 @@ export const entities = {
     /**
      * Returns the current health of the entity.
      * 
-     * @param {Entity} entity The entity to get health from.
      * @returns {number|undefined} The current health, or undefined if not available.
      */
-    getHealth(entity) {
-        const health = entity.getComponent('health');
-        return health?.current;
+    getHealth() {
+        const health = this.getComponent('health');
+        return health?.currentValue;
     },
 
     /**
      * Sets the current health of the entity.
      * 
-     * @param {Entity} entity The entity to modify.
      * @param {number} value The health value to set.
      * @returns {boolean} Whether the operation was successful.
      */
-    setHealth(entity, value) {
-        const health = entity.getComponent('health');
-        if (!health) return false;
-
-        health.setCurrent(value);
-        return true;
+    setHealth(value) {
+        try {
+            const health = this.getComponent('health');
+            if (!health) return false;
+            health.setCurrentValue(value);
+            return true;
+        } catch {
+            return false;
+        }
     },
 
     /**
      * Adds or subtracts health from the entity.
      * 
-     * @param {Entity} entity The entity to modify.
      * @param {number} delta Positive to heal, negative to damage.
      * @returns {boolean} Whether the operation was successful.
      */
-    changeHealth(entity, delta) {
-        const health = entity.getComponent('health');
+    addHealth(delta) {
+        const health = this.getComponent('health');
         if (!health) return false;
-
         const newHealth = Math.max(0, Math.min(health.currentValue + delta, health.effectiveMax));
         health.setCurrentValue(newHealth);
         return true;
@@ -337,7 +356,6 @@ export const entities = {
     /**
      * Returns detailed health information of the entity.
      * 
-     * @param {Entity} entity The entity to inspect.
      * @returns {{
      *   current: number,
      *   max: number,
@@ -345,12 +363,12 @@ export const entities = {
      *   percentage: number
      * }|undefined} Health data or undefined if not available.
      */
-    getHealthInfo(entity) {
-        const health = entity.getComponent('health');
+    getHealthInfo() {
+        const health = this.getComponent('health');
         if (!health) return;
 
-        const current = health.current;
-        const max = health.max;
+        const current = health.currentValue;
+        const max = health.effectiveMax;
         const missing = max - current;
         const percentage = Math.floor((current / max) * 10000) / 100;
 
@@ -362,14 +380,11 @@ export const entities = {
      * 
      * Works with any entity that has the "equippable" component.
      * 
-     * @param {Entity} entity The entity to inspect.
      * @param {string} [slot] Optional slot to retrieve ("Mainhand", "Offhand", "Head", "Chest", "Legs", "Feet").
      * @returns {ItemStack|object|undefined} The item in the slot, or an object with all equipment.
      */
-    getEquipment(entity, slot) {
-        if (!entity?.getComponent) return;
-
-        const equip = entity.getComponent('equippable');
+    getEquipment(slot) {
+        const equip = this.getComponent('equippable');
         if (!equip) return;
 
         const validSlots = ['Mainhand', 'Offhand', 'Head', 'Chest', 'Legs', 'Feet'];
@@ -389,15 +404,12 @@ export const entities = {
     /**
      * Sets an item in a specific equipment slot of an entity.
      * 
-     * @param {Entity} entity The entity to equip.
      * @param {string} slot Slot name to set ("Mainhand", "Offhand", "Head", "Chest", "Legs", "Feet").
      * @param {ItemStack} item The item to equip.
      * @returns {boolean} Whether the operation was successful.
      */
-    setEquipment(entity, slot, item) {
-        if (!entity?.getComponent || !item) return false;
-
-        const equip = entity.getComponent('equippable');
+    setEquipment(slot, item) {
+        const equip = this.getComponent('equippable');
         if (!equip) return false;
 
         const validSlots = ['Mainhand', 'Offhand', 'Head', 'Chest', 'Legs', 'Feet'];
@@ -409,30 +421,105 @@ export const entities = {
         } catch {
             return false;
         }
+    },
+
+    /*
+     * Finds the first empty slot in an entity's inventory.
+     *
+     * @returns {number} The index of the first empty slot, or -1 if none.
+     */
+    findFirstEmptySlot() {
+        const invComp = this.getComponent("minecraft:inventory");
+        if (!invComp) return -1;
+
+        const container = invComp.container;
+        for (let i = 0; i < container.size; i++) {
+            if (!container.getItem(i)) return i;
+        }
+        return -1;
+    },
+
+    /**
+     * Finds the first empty slot in an entity's inventory and inserts the given item.
+     *
+     * @param {ItemStack} itemStack - The item to insert.
+     * @returns {number} The slot index where the item was inserted, or -1 if none found.
+     */
+    setInFirstEmptySlot(itemStack) {
+        const invComp = this.getComponent("minecraft:inventory");
+        if (!invComp) return -1;
+
+        const container = invComp.container;
+
+        for (let i = 0; i < container.size; i++) {
+            if (!container.getItem(i)) {
+                container.setItem(i, itemStack);
+                return i;
+            }
+        }
+
+        return -1;
+    },
+
+    /**
+     * Checks if an entity's inventory is completely full.
+     *
+     * @returns {boolean} True if the inventory has no empty slots, false otherwise.
+     */
+    isInventoryFull() {
+        const invComp = this.getComponent("minecraft:inventory");
+        if (!invComp) return false;
+
+        const container = invComp.container;
+        return container.emptySlotsCount === 0;
+    },
+
+    /**
+     * Repairs the item and returns it.
+     * @param {ItemStack} item The item to repair.
+     * @param {number} amount Amount of durability to restore.
+     * @param {number} [slot] Optional slot to apply item into.
+     * @returns {ItemStack|null}
+     */
+    repairItemInSlot(item, amount, slot) {
+        const durability = item?.getComponent("minecraft:durability");
+        if (!durability) return null;
+
+        durability.damage = Math.max(durability.damage - amount, 0);
+
+        if (typeof slot === "number") {
+            const container = this.getComponent("minecraft:inventory")?.container;
+            container?.setItem(slot, item);
+        }
+
+        return item;
+    },
+
+    /**
+     * Damages the item and returns it.
+     * @param {ItemStack} item The item to damage.
+     * @param {number} amount Amount of durability to subtract.
+     * @param {number} [slot] Optional slot to apply item into.
+     * @returns {ItemStack|null}
+     */
+    damageItemInSlot(item, amount, slot) {
+        const durability = item?.getComponent("minecraft:durability");
+        if (!durability) return null;
+
+        durability.damage = Math.min(durability.damage + amount, durability.maxDurability);
+
+        if (typeof slot === "number") {
+            const container = this.getComponent("minecraft:inventory")?.container;
+            container?.setItem(slot, item);
+        }
+
+        return item;
     }
 };
 
-export const blocks = {}
-
-export const register = {}
-
-export const math = {}
-
-export const utils = {
-
-    /**
-     * Prints a formatted JSON object to the player's chat.
-     *
-     * @param {Entity} player The player to send the message to.
-     * @param {string} title A title to show before the JSON.
-     * @param {Object} obj The object to stringify and print.
-     */
-    printJSON(player, title, obj) {
-        const formatted = JSON.stringify(obj, null, 2).split("\n");
-        player.sendMessage(`§6${title}:`);
-        for (const line of formatted) {
-            player.sendMessage(`§7${line}`);
-        }
+// Attach all extensions to Entity.prototype
+Object.entries(entityExtensions).forEach(([name, fn]) => {
+    if (!Entity.prototype[name]) {
+        Entity.prototype[name] = fn
     }
-}
-
+});

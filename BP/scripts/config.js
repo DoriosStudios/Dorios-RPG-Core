@@ -1,7 +1,7 @@
 import { updatePlayerStats } from './stats_manager.js'
 import { displayStats } from './stats_manager.js'
 import { clearGlobalImmuneEffects } from './trinkets_inv.js'
-import * as doriosAPI from './doriosAPI.js'
+import { ChestLootInjector } from './loot_injector.js'
 
 export let data = {};
 
@@ -126,6 +126,10 @@ export const scriptEventsHandler = {
                 }
 
                 data[id] = config;
+
+                if (config.trinket) {
+                    ChestLootInjector.registerTrinketLoot(id, config)
+                }
             }
         } catch (err) {
             console.warn("[Dorios RPG Core] JSON parse failed:", err, e.message);
@@ -138,31 +142,9 @@ export const scriptEventsHandler = {
         clearGlobalImmuneEffects(e.sourceEntity)
     },
     "dorios:print_data": e => {
-        doriosAPI.utils.printJSON(e.sourceEntity, 'Data', data)
+        DoriosAPI.utils.printJSON(e.sourceEntity, 'Data', data)
     },
     "dorios:display_stats": e => {
         displayStats(e.sourceEntity)
     }
-}
-
-export const endlessAgonyFormats = {
-    "Max Health": "health",
-    "Max Mana": "mana",
-    "Bonus Damage": "attack",
-    "Attack Multiplier": "attackMulti",
-    "Knockback": "knockback",
-    "Knockback Resistance": "knockbackRes",
-    "Damage Reduction": "damageReduction",
-    "Movement Speed": "speed",
-    "Water Speed": "waterSpeed",
-    "Lava Speed": "lavaSpeed",
-    "Health Regen": "healthRegen",
-    "Life Steal": "lifeSteal",
-    "Mana Regen": "manaRegen",
-    "Mana Steal": "manaSteal",
-    "Critical Multiplier": "critMulti",
-    "Critical Chance": "critChance",
-    "Thorns": "thorns",
-    "Fire Aspect": "fireAspect",
-    "Extra Jumps": "extraJumps"
 }
