@@ -2,6 +2,7 @@ import { updatePlayerStats } from './stats_manager.js'
 import { displayStats } from './stats_manager.js'
 import { clearGlobalImmuneEffects } from './trinkets_inv.js'
 import { ChestLootInjector, MobLootInjector } from './loot_injector.js'
+import { system } from "@minecraft/server";
 
 export let data = {};
 
@@ -135,7 +136,16 @@ export const scriptEventsHandler = {
                     MobLootInjector.registerTrinketDrop(id, config)
                 }
             }
+
+            system.sendScriptEvent(
+                "dorios:stat_data_registered",
+                JSON.stringify({ registered: true })
+            );
         } catch (err) {
+            system.sendScriptEvent(
+                "dorios:stat_data_registered",
+                JSON.stringify({ registered: false })
+            );
             console.warn("[Dorios RPG Core] JSON parse failed:", err, e.message);
         }
     },
