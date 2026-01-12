@@ -118,7 +118,7 @@ function calculateAllStats(entity) {
     const equippedTypeIds = [...entity.getTags()];
 
     for (const statName in statsConfig) {
-        const { default: base, min, max } = statsConfig[statName];
+        const { default: base, min, max, scale } = statsConfig[statName];
         let total = base + (stats[statName] ?? 0);
 
         equippedTypeIds.forEach(typeId => {
@@ -130,6 +130,10 @@ function calculateAllStats(entity) {
 
         if (min !== undefined && max !== undefined) {
             total = Math.min(Math.max(total, min), max);
+        }
+
+        if (scale) {
+            total = scale * Math.floor(total / scale)
         }
 
         stats[statName] = total;

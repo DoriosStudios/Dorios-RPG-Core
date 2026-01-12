@@ -31,13 +31,13 @@ export const slots = {
 };
 
 export const statsConfig = {
-    health: { default: 20, min: 2, max: 100 }, // Scale 2: 2,4,6,...
+    health: { default: 20, min: 2, max: 100, scale: 2 }, // Scale 2: 2,4,6,...
     mana: { default: 100 },
     attack: { default: 0 },
     attackMulti: { default: 0 },
     knockback: { default: 0 },
-    knockbackRes: { default: 0, min: 0, max: 100 }, // Scale 1: 1,2,3,...
-    damageReduction: { default: 0, min: -100, max: 100 }, // Scale 1: 1,2,3,... (Negative means it receives more damage -100 => x2)
+    knockbackRes: { default: 0, min: 0, max: 100, scale: 1 }, // Scale 1: 1,2,3,...
+    damageReduction: { default: 0, min: -100, max: 100, scale: 1 }, // Scale 1: 1,2,3,... (Negative means it receives more damage -100 => x2)
     speed: { default: 100 },
     waterSpeed: { default: 100 },
     lavaSpeed: { default: 100 },
