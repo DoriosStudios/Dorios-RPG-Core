@@ -1,41 +1,4 @@
-import { world, system, ItemStack, Block } from "@minecraft/server";
-
-/**
- * Structure detection definitions.
- *
- * - Array  → existence check (at least one block exists)
- * - Object → minimum required block counts
- *
- * Order matters: first match wins.
- */
-export const structures = {
-    desert_pyramid: {
-        "minecraft:chiseled_sandstone": 2,
-        "minecraft:tnt": 2
-    },
-    buried_treasure: {
-        "minecraft:sand": 8,
-        "minecraft:sandstone": 4
-    },
-    shipwreck_treasure: [
-        "minecraft:prismarine",
-        "minecraft:dark_prismarine"
-    ],
-    ruined_portal: [
-        "minecraft:obsidian",
-        "minecraft:crying_obsidian"
-    ]
-};
-
-/**
- * Loot tables applied when a structure is detected.
- */
-export const structureLoot = {};
-
-/**
- * Base loot tables per biome.
- */
-export const biomeLoot = {};
+import { world, system, ItemStack, Block, Player, Entity } from "@minecraft/server";
 
 export class ChestLootInjector {
     static PLACED_CHESTS_KEY = "dorios:placed_chests";
@@ -50,11 +13,54 @@ export class ChestLootInjector {
      * @param {Object | string[]} definition
      */
     static registerStructure(id, definition) {
-        if (structures[id]) return;
+        if (this.structures[id]) return;
 
-        structures[id] = definition;
+        this.structures[id] = definition;
     }
 
+    /**
+     * Loot tables applied when a structure is detected.
+     */
+    static structureLoot = {};
+
+    /**
+     * Base loot tables per biome.
+     */
+    static biomeLoot = {};
+
+    /**
+     * Structure detection definitions.
+     *
+     * - Array  → existence check (at least one block exists)
+     * - Object → minimum required block counts
+     *
+     * Order matters: first match wins.
+     */
+    static structures = {
+        "desert_pyramid": {
+            "minecraft:chiseled_sandstone": 2,
+            "minecraft:tnt": 2
+        },
+        "ruined_portal": [
+            "minecraft:obsidian",
+            "minecraft:netherrack"
+        ],
+        "buried_treasure": {
+            "minecraft:sand": 2,
+            "minecraft:sandstone": 2
+        },
+        "nether_fortress": {
+            "minecraft:nether_brick": 2,
+            "minecraft:nether_brick_fence": 1
+        },
+        "bastion": {
+            "minecraft:blackstone": 4
+        },
+        "pillager_outpost": {
+            "minecraft:dark_oak_log": 4,
+            "minecraft:birch_planks": 4
+        }
+    };
     /**
      * Registers loot for a structure.
      * If loot already exists, it is merged.
@@ -64,12 +70,12 @@ export class ChestLootInjector {
      * @param {Array<{item:string, chance:number, conditions?:Object}>} loot
      */
     static registerStructureLoot(structureId, loot) {
-        if (!structureLoot[structureId]) {
-            structureLoot[structureId] = [...loot];
+        if (!this.structureLoot[structureId]) {
+            this.structureLoot[structureId] = [...loot];
             return;
         }
 
-        const existing = structureLoot[structureId];
+        const existing = this.structureLoot[structureId];
         const map = new Map();
 
         // Existing loot
@@ -85,7 +91,7 @@ export class ChestLootInjector {
             }
         }
 
-        structureLoot[structureId] = Array.from(map.values());
+        this.structureLoot[structureId] = Array.from(map.values());
     }
 
     /**
@@ -97,12 +103,12 @@ export class ChestLootInjector {
      * @param {Array<{item:string, chance:number}>} loot
      */
     static registerBiomeLoot(biomeId, loot) {
-        if (!biomeLoot[biomeId]) {
-            biomeLoot[biomeId] = [...loot];
+        if (!this.biomeLoot[biomeId]) {
+            this.biomeLoot[biomeId] = [...loot];
             return;
         }
 
-        const existing = biomeLoot[biomeId];
+        const existing = this.biomeLoot[biomeId];
         const map = new Map();
 
         // Existing loot
@@ -118,7 +124,7 @@ export class ChestLootInjector {
             }
         }
 
-        biomeLoot[biomeId] = Array.from(map.values());
+        this.biomeLoot[biomeId] = Array.from(map.values());
     }
 
     /**
@@ -304,14 +310,12 @@ export class ChestLootInjector {
             return "chest_cluster";
         }
 
-        for (const [structureId, requirement] of Object.entries(structures)) {
+        for (const [structureId, requirement] of Object.entries(this.structures)) {
 
             // Case A: Array -> existence
             if (Array.isArray(requirement)) {
-                for (const blockId of requirement) {
-                    if (blockCount.has(blockId)) {
-                        return structureId;
-                    }
+                if (requirement.every(blockId => blockCount.has(blockId))) {
+                    return structureId;
                 }
                 continue;
             }
@@ -372,7 +376,7 @@ export class ChestLootInjector {
 
                 const cond = entry.conditions;
                 if (cond) {
-                    if (cond.dimension && cond.dimension !== context.dimensionId) continue;
+                    if (cond.dimension && cond.dimension != context.dimensionId) continue;
                     if (cond.biomes && !cond.biomes.includes(context.biomeId)) continue;
                 }
 
@@ -386,15 +390,48 @@ export class ChestLootInjector {
         return finalLoot;
     }
 
+    static REPLACEABLE_ITEMS = new Set([
+        "minecraft:rotten_flesh",
+        "minecraft:bone",
+        "minecraft:string",
+        "minecraft:gunpowder",
+        "minecraft:gold_nugget",
+        "minecraft:iron_nugget",
+        "minecraft:coal",
+        "minecraft:bread",
+        "minecraft:wheat"
+    ]);
+
     /**
-     * Injects loot into a chest container based on a resolved loot table.
+     * Builds initial slot pools for injection.
+     *
+     * @param {import("@minecraft/server").Container} container
+     * @returns {{ empty: number[], replaceable: number[] }}
+     */
+    static getSlotPools(container) {
+        const empty = [];
+        const replaceable = [];
+
+        for (let i = 0; i < container.size; i++) {
+            const item = container.getItem(i);
+
+            if (!item) {
+                empty.push(i);
+            } else if (this.REPLACEABLE_ITEMS.has(item.typeId)) {
+                replaceable.push(i);
+            }
+        }
+
+        return { empty, replaceable };
+    }
+
+    /**
+     * Injects loot into a chest container using random slots.
      *
      * Rules:
-     * - Each entry is rolled independently
-     * - If chance passes, item is added to the chest
-     *
-     * @param {Map<string, number>} lootTable Final resolved loot table
-     * @param {Block} block Chest block
+     * - Slots are consumed once used
+     * - Empty slots are always preferred
+     * - Replaceable slots are used only if no empty slots remain
      */
     static injectLoot(lootTable, block) {
         if (!lootTable || lootTable.size === 0) return;
@@ -404,10 +441,28 @@ export class ChestLootInjector {
 
         if (!container) return;
 
+        const { empty, replaceable } = this.getSlotPools(container);
+
         for (const [itemId, chance] of lootTable) {
-            if (Math.random() <= chance) {
-                container.addItem(new ItemStack(itemId, 1));
+            if (Math.random() > chance) continue;
+
+            let pool;
+
+            if (empty.length > 0) {
+                pool = empty;
+            } else if (replaceable.length > 0) {
+                pool = replaceable;
+            } else {
+                break; // No slots left
             }
+
+            const index = Math.floor(Math.random() * pool.length);
+            const slot = pool[index];
+
+            // Remove slot from pool so it can't be reused
+            pool.splice(index, 1);
+
+            container.setItem(slot, new ItemStack(itemId, 1));
         }
     }
 
@@ -423,16 +478,15 @@ export class ChestLootInjector {
 
         const dimension = block.dimension;
         const dimensionId = dimension.id;
-
         // Biome is resolved from block position
         const biomeId = dimension.getBiome(block.location).id;
-
         // Structure detection (single scan)
         const structureId = this.detectNearbyStructure(block);
+        // world.sendMessage(`${biomeId} ${structureId}`)
 
         // Obtain loot tables
-        const biomeTable = biomeLoot[biomeId] ?? null;
-        const structureTable = structureLoot[structureId] ?? null;
+        const biomeTable = this.biomeLoot[biomeId] ?? null;
+        const structureTable = this.structureLoot[structureId] ?? null;
 
         // Merge loot tables
         const finalLoot = this.mergeLootTables(
@@ -457,10 +511,10 @@ export class ChestLootInjector {
      * Registers loot tables from a trinket definition.
      *
      * @param {string} trinketId
-     * @param {Object} trinket
+     * @param {Object} trinketData
      */
-    static registerTrinketLoot(trinketId, trinket) {
-        const loot = trinket.loot;
+    static registerTrinketLoot(trinketId, trinketData) {
+        const loot = trinketData.loot;
         if (!loot) return;
 
         // ── Biome loot ──────────────────────────────────
@@ -493,6 +547,52 @@ export class ChestLootInjector {
         }
     }
 
+    /**
+     * Returns true if a chest position is already marked (placed or opened).
+     *
+     * @param {{x:number,y:number,z:number}} pos
+     * @returns {boolean}
+     */
+    static isChestMarkedAt(pos) {
+        const key = this.posKey(pos);
+
+        const placed = this.getChestSet(this.PLACED_CHESTS_KEY, pos);
+        if (placed[key]) return true;
+
+        const opened = this.getChestSet(this.OPENED_CHESTS_KEY, pos);
+        if (opened[key]) return true;
+
+        return false;
+    }
+
+    /**
+     * Marks a position as player-placed (no loot should ever be injected here).
+     *
+     * @param {{x:number,y:number,z:number}} pos
+     */
+    static markPosPlaced(pos) {
+        const key = this.posKey(pos);
+
+        const placed = this.getChestSet(this.PLACED_CHESTS_KEY, pos);
+        placed[key] = 1;
+
+        this.saveChestSet(this.PLACED_CHESTS_KEY, pos, placed);
+    }
+
+    /**
+     * Offsets a position by a vector * amount.
+     *
+     * @param {{x:number,y:number,z:number}} pos
+     * @param {{x:number,y:number,z:number}} vec
+     * @param {number} amount
+     */
+    static offsetPos(pos, vec, amount = 1) {
+        return {
+            x: pos.x + vec.x * amount,
+            y: pos.y + vec.y * amount,
+            z: pos.z + vec.z * amount
+        };
+    }
 }
 
 world.afterEvents.playerInteractWithBlock.subscribe(({ block }) => {
@@ -503,4 +603,149 @@ world.afterEvents.playerInteractWithBlock.subscribe(({ block }) => {
 world.afterEvents.playerPlaceBlock.subscribe(({ block }) => {
     if (block.typeId !== "minecraft:chest") return;
     ChestLootInjector.markChestPlaced(block);
+});
+
+world.afterEvents.pistonActivate.subscribe(e => {
+    const { piston, isExpanding, dimension } = e;
+
+    // Locations affected (works even when getAttachedBlocks() is bugged)
+    const locations = piston.getAttachedBlocksLocations();
+    if (!locations || locations.length === 0) return;
+
+    // Facing direction -> vector
+    const facing = piston.block.permutation.getState("facing_direction");
+    const dirVec = getDirectionVector(facing);
+
+    // Expand: blocks move +dirVec
+    // Retract (sticky): blocks move -dirVec
+    const step = isExpanding ? -1 : 1;
+
+    for (const pos of locations) {
+        // Solo nos importa si esa posición ya estaba marcada (explotable)
+        if (!ChestLootInjector.isChestMarkedAt(pos)) continue;
+
+        // Marcar la posición original también (por seguridad)
+        ChestLootInjector.markPosPlaced(pos);
+
+        // Posición destino del bloque movido
+        const destPos = ChestLootInjector.offsetPos(pos, dirVec, step);
+        // world.sendMessage(`${JSON.stringify(destPos)}`)
+
+        // Marcar el destino como placed también
+        ChestLootInjector.markPosPlaced(destPos);
+    }
+});
+
+/**
+ * Converts piston facing direction to a vector.
+ *
+ * @param {number} dir
+ * @returns {{x:number,y:number,z:number}}
+ */
+function getDirectionVector(dir) {
+    switch (dir) {
+        case 0: return { x: 0, y: -1, z: 0 }; // down
+        case 1: return { x: 0, y: 1, z: 0 };  // up
+        case 2: return { x: 0, y: 0, z: -1 }; // north
+        case 3: return { x: 0, y: 0, z: 1 };  // south
+        case 4: return { x: -1, y: 0, z: 0 }; // west
+        case 5: return { x: 1, y: 0, z: 0 };  // east
+        default: return { x: 0, y: 0, z: 0 };
+    }
+}
+
+
+export class MobLootInjector {
+    /**
+     * Mob-based loot table.
+     * Indexed by entity type id.
+     *
+     * Example:
+     * {
+     *   "minecraft:zombie": [
+     *     {
+     *       item: "dorios:rotten_heart",
+     *       amount: 1,
+     *       chance: 0.05,
+     *       conditions: {}
+     *     }
+     *   ]
+     * }
+     *
+     * @type {Object<string, {
+     *   item: string,
+     *   amount: number,
+     *   chance: number,
+     *   conditions?: Object
+     * }[]>}
+     */
+    static entityDrops = {};
+
+    /**
+     * Resolves and spawns custom drops for a dead entity based on configured rules.
+     *
+     * This method:
+     * - Looks up drop definitions using the entity's `typeId`
+     * - Evaluates optional conditions (e.g. dimension restrictions)
+     * - Applies probabilistic drop chances
+     * - Attempts to spawn drops at the dead entity's location
+     * - Falls back to spawning at the player location if the entity context fails
+     *
+     * @static
+     *
+     * @param {Entity} deadEntity
+     * The entity that has died and is the source of the drops.
+     *
+     * @param {Player} player
+     * The player associated with the kill (used as a fallback spawn location).
+     *
+     * @returns {void}
+     */
+    static resolve(deadEntity, player) {
+        const drops = this.entityDrops[deadEntity.typeId];
+        if (!drops) return;
+
+        drops.forEach(drop => {
+            const conditions = drop.conditions
+            if (conditions) {
+                if (conditions.dimension && conditions.dimension != deadEntity?.dimension?.id) return
+            };
+            if (Math.random() <= drop.chance) {
+                try {
+                    deadEntity.dimension.spawnItem(new ItemStack(drop.item, drop.amount), deadEntity.location);
+                } catch {
+                    player.dimension.spawnItem(new ItemStack(drop.item, drop.amount), player.location);
+                }
+            }
+        });
+    }
+
+    /**
+     * Registers loot tables from a trinket definition.
+     *
+     * @param {string} trinketId
+     * @param {Object} trinketData
+     */
+    static registerTrinketDrop(trinketId, trinketData) {
+        if (!trinketData.drops) return;
+
+        for (const drop of trinketData.drops) {
+            const entity = drop.entity;
+            if (!this.entityDrops[entity]) this.entityDrops[entity] = [];
+
+            this.entityDrops[entity].push({
+                item: trinketId,
+                amount: drop.amount ?? 1,
+                chance: drop.chance ?? 0.10,
+                conditions: drop.conditions
+            });
+        }
+    }
+
+}
+
+world.afterEvents.entityDie.subscribe(({ deadEntity, damageSource }) => {
+    const player = damageSource?.damagingEntity;
+    if (!player || player.typeId !== 'minecraft:player') return;
+    MobLootInjector.resolve(deadEntity, player)
 });

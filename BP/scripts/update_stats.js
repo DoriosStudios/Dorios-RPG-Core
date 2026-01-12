@@ -77,7 +77,7 @@ function updateData(player) {
     const interval = system.runInterval(() => {
         // Ensure player is still valid
         if (!player.isValid) return
-
+        // world.sendMessage(`${player.dimension.getBiome(player.location).id}`)
         // Trinket updates and extra jump logic
         trinketTick(player);
 

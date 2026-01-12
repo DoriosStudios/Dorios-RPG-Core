@@ -1,7 +1,7 @@
 import { updatePlayerStats } from './stats_manager.js'
 import { displayStats } from './stats_manager.js'
 import { clearGlobalImmuneEffects } from './trinkets_inv.js'
-import { ChestLootInjector } from './loot_injector.js'
+import { ChestLootInjector, MobLootInjector } from './loot_injector.js'
 
 export let data = {};
 
@@ -127,8 +127,12 @@ export const scriptEventsHandler = {
 
                 data[id] = config;
 
-                if (config.trinket) {
+                if (config.loot) {
                     ChestLootInjector.registerTrinketLoot(id, config)
+                }
+
+                if (config.drops) {
+                    MobLootInjector.registerTrinketDrop(id, config)
                 }
             }
         } catch (err) {
@@ -146,5 +150,8 @@ export const scriptEventsHandler = {
     },
     "dorios:display_stats": e => {
         displayStats(e.sourceEntity)
+    },
+    "dorios:reset_chest_tracking": e => {
+        ChestLootInjector.resetChestTracking()
     }
 }
