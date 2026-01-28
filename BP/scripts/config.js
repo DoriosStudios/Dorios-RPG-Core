@@ -2,7 +2,7 @@ import { updatePlayerStats } from './stats_manager.js'
 import { displayStats } from './stats_manager.js'
 import { clearGlobalImmuneEffects } from './trinkets_inv.js'
 import { ChestLootInjector, MobLootInjector } from './loot_injector.js'
-import { system } from "@minecraft/server";
+import { world, system } from "@minecraft/server";
 
 export let data = {};
 
@@ -113,7 +113,8 @@ export const scriptEventsHandler = {
     "dorios:register_stat_data": e => {
         try {
             const payload = JSON.parse(e.message);
-            const newData = Object.values(payload)[0];
+            const newData = payload
+            world.sendMessage(`${JSON.stringify(newData)}`)
 
             if (!newData || typeof newData !== "object") {
                 console.warn("[Dorios RPG Core] Invalid payload format:", e.message);

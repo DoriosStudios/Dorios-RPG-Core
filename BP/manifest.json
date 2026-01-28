@@ -7,7 +7,7 @@
 	},
 	"header": {
 		"name": "Dorios RPG Core",
-		"description": "v1.0.0 - Used to power RPG-style addons in Minecraft Bedrock.",
+		"description": "v1.0.1 - Used to power RPG-style addons in Minecraft Bedrock.",
 		"min_engine_version": [
 			1,
 			21,
@@ -17,7 +17,7 @@
 		"version": [
 			1,
 			0,
-			0
+			1
 		]
 	},
 	"modules": [
@@ -48,7 +48,7 @@
 			"version": [
 				1,
 				0,
-				0
+				1
 			]
 		},
 		{
