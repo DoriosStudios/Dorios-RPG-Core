@@ -141,7 +141,7 @@ function applyPassiveEffects(player) {
     const passives = getStatCategory(player, "passives");
     for (const [effectName, level] of Object.entries(passives)) {
         try {
-            player.addEffect(effectName, 220, {
+            player.addEffect(effectName, 240, {
                 amplifier: level - 1,
                 showParticles: false,
             });

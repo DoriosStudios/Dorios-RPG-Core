@@ -114,7 +114,6 @@ export const scriptEventsHandler = {
         try {
             const payload = JSON.parse(e.message);
             const newData = payload
-            world.sendMessage(`${JSON.stringify(newData)}`)
 
             if (!newData || typeof newData !== "object") {
                 console.warn("[Dorios RPG Core] Invalid payload format:", e.message);
