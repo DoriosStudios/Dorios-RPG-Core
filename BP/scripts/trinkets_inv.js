@@ -2,6 +2,78 @@ import { system, ItemStack, world } from '@minecraft/server'
 import { data, slots } from './config.js'
 import { getStatCategory, displayStats } from './stats_manager.js'
 
+// =============================================================================
+// MULTI-SLOT HELPERS
+// =============================================================================
+
+/**
+ * Normalizes a trinket's slot field to always return an array of slot names.
+ * Supports both `trinket: "ring"` and `trinket: ["ring", "ring2"]`.
+ */
+function getTrinketSlots(entry) {
+    if (!entry?.trinket) return [];
+
+    const rawSlots = Array.isArray(entry.trinket) ? entry.trinket : [entry.trinket];
+    const expandedSlots = [];
+
+    for (const slotName of rawSlots) {
+        expandedSlots.push(slotName);
+
+        // Legacy compatibility: any standard ring can also use the extra ring slot.
+        if (slotName === "ring") {
+            expandedSlots.push("ring2");
+        }
+    }
+
+    return [...new Set(expandedSlots)];
+}
+
+/**
+ * Builds a map of occupied slot names from the player's equipped trinket tags.
+ * Assigns each item to its first available (non-occupied) slot, prioritizing
+ * items with fewer slot options first to avoid conflicts.
+ * @returns {Map<string, string>} slotName → tag that occupies it
+ */
+function getOccupiedSlotMap(tags) {
+    const items = [];
+    for (const tag of tags) {
+        const entry = data[tag];
+        if (!entry?.trinket) continue;
+        items.push({ tag, validSlots: getTrinketSlots(entry) });
+    }
+    // Sort by flexibility: items with fewer options first (greedy allocation)
+    items.sort((a, b) => a.validSlots.length - b.validSlots.length);
+
+    const occupied = new Map();
+    for (const item of items) {
+        for (const slotName of item.validSlots) {
+            if (!occupied.has(slotName)) {
+                occupied.set(slotName, item.tag);
+                break;
+            }
+        }
+    }
+    return occupied;
+}
+
+function isValidContainerSlotIndex(container, index) {
+    if (typeof index !== "number" || index < 0) return false;
+    try {
+        container.getSlot(index);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function getValidConfiguredSlotIndices(container) {
+    const uniqueConfigured = [...new Set(Object.values(slots).filter(i => typeof i === "number"))];
+    return uniqueConfigured.filter(index => isValidContainerSlotIndex(container, index));
+}
+
+// =============================================================================
+// MAIN TRINKET TICK
+// =============================================================================
 
 world.afterEvents.itemUse.subscribe(e => {
     if (e.itemStack.typeId == 'dorios:stats_scroll') displayStats(e.source)
@@ -60,15 +132,12 @@ function loadEntityInv(player, entity) {
     if (!container) return;
 
     const tags = player.getTags();
+    const occupied = getOccupiedSlotMap(tags);
 
-    for (const tag of tags) {
-        const entry = data[tag];
-        if (!entry?.trinket) continue;
-
-        const slot = entry.trinket;
-        const index = slots[slot];
-        if (index === undefined) continue;
-
+    // Place items in their assigned slots
+    for (const [slotName, tag] of occupied.entries()) {
+        const index = slots[slotName];
+        if (index === undefined || !isValidContainerSlotIndex(container, index)) continue;
         container.setItem(index, new ItemStack(tag));
     }
 }
@@ -80,8 +149,9 @@ function validateTrinketSlots(player, entity) {
 
     const currentTags = new Set(player.getTags());
     const expectedTags = new Set();
+    const slotIndices = getValidConfiguredSlotIndices(container);
 
-    for (const [_slotName, index] of Object.entries(slots)) {
+    for (const index of slotIndices) {
         const slot = container.getSlot(index);
         const item = slot?.getItem();
         if (!item) continue;
@@ -91,7 +161,8 @@ function validateTrinketSlots(player, entity) {
 
         const isTrinket = entry?.trinket;
         const passesCondition = entry?.condition != undefined ? entry.condition(player) : true;
-        // Si no está en data, no es trinket, o falla condición → quitarlo
+
+        // If not in data, not a trinket, or fails condition → remove it
         if (!entry || !isTrinket || !passesCondition) {
             container.setItem(index);
             if (playerInv.emptySlotsCount > 0) {
@@ -102,19 +173,33 @@ function validateTrinketSlots(player, entity) {
             continue;
         }
 
-        const correctSlotKey = entry.trinket;
-        const correctIndex = slots[correctSlotKey];
+        // Check if this item is in a valid slot (multi-slot aware)
+        const validSlots = getTrinketSlots(entry);
+        const validIndices = validSlots
+            .map(s => slots[s])
+            .filter(i => i !== undefined && isValidContainerSlotIndex(container, i));
 
         expectedTags.add(id);
 
-        // Mover al slot correcto si está en otro
-        if (correctIndex !== index) {
-            const targetSlot = container.getSlot(correctIndex);
-            const occupied = targetSlot?.getItem();
-
-            if (!occupied) {
-                container.moveItem(index, correctIndex, container);
+        if (validIndices.length === 0) {
+            container.setItem(index);
+            if (playerInv.emptySlotsCount > 0) {
+                playerInv.addItem(item);
             } else {
+                player.dimension.spawnItem(item, player.location);
+            }
+            continue;
+        }
+
+        // If item is NOT in any of its valid slots, move or return it
+        if (!validIndices.includes(index)) {
+            // Find first valid empty slot
+            const targetIndex = validIndices.find(i => !container.getItem(i));
+
+            if (targetIndex !== undefined) {
+                container.moveItem(index, targetIndex, container);
+            } else {
+                // All valid slots occupied, return to player
                 container.setItem(index);
                 if (playerInv.emptySlotsCount > 0) {
                     playerInv.addItem(item);
@@ -123,14 +208,16 @@ function validateTrinketSlots(player, entity) {
                 }
             }
         }
-        clearGlobalImmuneEffects(player)
-        // Agregar el tag si aún no lo tiene
+
+        clearGlobalImmuneEffects(player);
+
+        // Add the tag if player doesn't have it
         if (!currentTags.has(id)) {
             player.addTag(id);
         }
     }
 
-    // Quitar tags de trinkets que ya no están o que fallan su condición
+    // Remove tags for trinkets that are no longer present or fail conditions
     for (const tag of currentTags) {
         const entry = data[tag];
         if (!entry?.trinket) continue;
@@ -161,12 +248,11 @@ function tryEquipTrinket(player, item) {
     if (!id || !data[id]) return;
 
     const entry = data[id];
-    const slot = entry?.trinket;
-    if (!slot) return;
+    const validSlots = getTrinketSlots(entry);
+    if (validSlots.length === 0) return;
 
-    // Si hay una condición y no se cumple, tratar como si el slot estuviera lleno
+    // If there's a condition and it fails, cancel equip
     if (typeof entry.condition === "function" && !entry.condition(player)) {
-        // Cancelar equipamiento y devolver el ítem
         const inv = player.getComponent('inventory')?.container;
         if (inv?.emptySlotsCount > 0) {
             inv.addItem(item);
@@ -176,20 +262,17 @@ function tryEquipTrinket(player, item) {
         return;
     }
 
-    // Revisar si ya tiene un trinket en ese slot (por tag)
+    // Check if ALL valid slots are occupied (multi-slot aware)
     const tags = player.getTags();
-    for (const tag of tags) {
-        const tagEntry = data[tag];
-        if (tagEntry?.trinket === slot) {
-            // Ya hay algo en ese slot, cancelar
-            return;
-        }
-    }
+    const occupied = getOccupiedSlotMap(tags);
+    const hasFreeSlot = validSlots.some(s => !occupied.has(s));
 
-    // Todo ok, se equipa
+    if (!hasFreeSlot) return; // All slots for this type are full
+
+    // Equip the trinket
     player.addTag(id);
-    clearTrinketImmuneEffects(player, entry)
-    player.changeItemAmount(player.selectedSlotIndex, -1)
+    clearTrinketImmuneEffects(player, entry);
+    player.changeItemAmount(player.selectedSlotIndex, -1);
 }
 
 /**

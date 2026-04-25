@@ -5,8 +5,8 @@
         "anchor_from": "center",
         "anchor_to": "center",
         "size": [
-            162,
-            72
+            189,
+            90
         ],
         "offset": [
             -10,
@@ -86,159 +86,174 @@
                 }
             },
             {
-                "item@common.container_item": {
+                "slot_head_item@common.container_item": {
                     "anchor_from": "top_left",
                     "anchor_to": "top_left",
-                    "offset": [
-                        10,
-                        -3
-                    ],
+                    "offset": [10, -3],
                     "$cell_overlay_ref": "trinkets.slot_head",
                     "collection_index": 0
                 }
             },
             {
-                "item@common.container_item": {
+                "slot_necklace_item@common.container_item": {
                     "anchor_from": "top_left",
                     "anchor_to": "top_left",
-                    "offset": [
-                        10,
-                        15
-                    ],
+                    "offset": [10, 15],
                     "$cell_overlay_ref": "trinkets.slot_necklace",
                     "collection_index": 3
                 }
             },
             {
-                "item@common.container_item": {
+                "slot_body_item@common.container_item": {
                     "anchor_from": "top_left",
                     "anchor_to": "top_left",
-                    "offset": [
-                        10,
-                        33
-                    ],
+                    "offset": [10, 33],
                     "$cell_overlay_ref": "trinkets.slot_body",
                     "collection_index": 1
                 }
             },
             {
-                "item@common.container_item": {
+                "slot_boots1_item@common.container_item": {
                     "anchor_from": "top_left",
                     "anchor_to": "top_left",
-                    "offset": [
-                        10,
-                        51
-                    ],
-                    "$cell_overlay_ref": "trinkets.slot_feet",
+                    "offset": [10, 51],
+                    "$cell_overlay_ref": "trinkets.slot_boots1",
                     "collection_index": 2
                 }
-            }, /////////////////
+            },
             {
-                "item@common.container_item": {
+                "slot_boots2_item@common.container_item": {
+                    "anchor_from": "top_left",
+                    "anchor_to": "top_left",
+                    "offset": [10, 69],
+                    "$cell_overlay_ref": "trinkets.slot_boots2",
+                    "collection_index": 18
+                }
+            },
+            {
+                "slot_doll_item@common.container_item": {
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
-                    "offset": [
-                        10,
-                        15
-                    ],
+                    "offset": [10, 15],
                     "$cell_overlay_ref": "trinkets.slot_doll",
                     "collection_index": 9
                 }
             },
             {
-                "item@common.container_item": {
+                "slot_talisman_item@common.container_item": {
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
-                    "offset": [
-                        10,
-                        33
-                    ],
+                    "offset": [10, 33],
                     "$cell_overlay_ref": "trinkets.slot_talisman",
                     "collection_index": 6
                 }
             },
             {
-                "item@common.container_item": {
+                "slot_amulet_item@common.container_item": {
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
-                    "offset": [
-                        10,
-                        51
-                    ],
+                    "offset": [10, 51],
                     "$cell_overlay_ref": "trinkets.slot_amulet",
                     "collection_index": 12
                 }
-            }, /////////
+            },
             {
-                "item@common.container_item": {
+                "slot_belt_item@common.container_item": {
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
-                    "offset": [
-                        37,
-                        15
-                    ],
+                    "offset": [10, 69],
+                    "$cell_overlay_ref": "trinkets.slot_belt",
+                    "collection_index": 15
+                }
+            },
+            {
+                "slot_hearty_charm_item@common.container_item": {
+                    "anchor_from": "top_middle",
+                    "anchor_to": "top_middle",
+                    "offset": [37, 15],
                     "$cell_overlay_ref": "trinkets.slot_hearty_charm",
                     "collection_index": 8
                 }
             },
             {
-                "item@common.container_item": {
+                "slot_charm_item@common.container_item": {
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
-                    "offset": [
-                        37,
-                        33
-                    ],
+                    "offset": [37, 33],
                     "$cell_overlay_ref": "trinkets.slot_charm",
                     "collection_index": 5
                 }
             },
             {
-                "item@common.container_item": {
+                "slot_archaic_charm_item@common.container_item": {
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
-                    "offset": [
-                        37,
-                        51
-                    ],
+                    "offset": [37, 51],
                     "$cell_overlay_ref": "trinkets.slot_main_charm",
                     "collection_index": 11
                 }
             },
             {
-                "item@common.container_item": {
+                "slot_gauntlet_item@common.container_item": {
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
-                    "offset": [
-                        64,
-                        15
-                    ],
+                    "offset": [64, 7],
                     "$cell_overlay_ref": "trinkets.slot_gauntlet",
                     "collection_index": 7
                 }
             },
             {
-                "item@common.container_item": {
+                "slot_ring_item@common.container_item": {
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
-                    "offset": [
-                        64,
-                        33
-                    ],
+                    "offset": [64, 33],
                     "$cell_overlay_ref": "trinkets.slot_ring",
                     "collection_index": 4
                 }
             },
             {
-                "item@common.container_item": {
+                "slot_witherring_item@common.container_item": {
                     "anchor_from": "top_middle",
                     "anchor_to": "top_middle",
-                    "offset": [
-                        64,
-                        51
-                    ],
+                    "offset": [64, 51],
                     "$cell_overlay_ref": "trinkets.slot_main_ring",
                     "collection_index": 10
+                }
+            },
+            {
+                "slot_ring2_item@common.container_item": {
+                    "anchor_from": "top_middle",
+                    "anchor_to": "top_middle",
+                    "offset": [64, 69],
+                    "$cell_overlay_ref": "trinkets.slot_ring2",
+                    "collection_index": 16
+                }
+            },
+            {
+                "slot_face_item@common.container_item": {
+                    "anchor_from": "top_middle",
+                    "anchor_to": "top_middle",
+                    "offset": [91, 15],
+                    "$cell_overlay_ref": "trinkets.slot_face",
+                    "collection_index": 13
+                }
+            },
+            {
+                "slot_earring_item@common.container_item": {
+                    "anchor_from": "top_middle",
+                    "anchor_to": "top_middle",
+                    "offset": [91, 33],
+                    "$cell_overlay_ref": "trinkets.slot_earring",
+                    "collection_index": 14
+                }
+            },
+            {
+                "slot_heavyring_item@common.container_item": {
+                    "anchor_from": "top_middle",
+                    "anchor_to": "top_middle",
+                    "offset": [91, 51],
+                    "$cell_overlay_ref": "trinkets.slot_heavyring",
+                    "collection_index": 17
                 }
             }
         ]
@@ -246,10 +261,7 @@
     "trinkets_slots": {
         "type": "image",
         "layer": 2,
-        "size": [
-            16,
-            16
-        ],
+        "size": [16, 16],
         "bindings": [
             {
                 "binding_type": "collection_details",
@@ -277,8 +289,11 @@
     "slot_charm@trinkets.trinkets_slots": {
         "texture": "textures/ui/empty_charm"
     },
-    "slot_feet@trinkets.trinkets_slots": {
-        "texture": "textures/ui/empty_feet"
+    "slot_boots1@trinkets.trinkets_slots": {
+        "texture": "textures/ui/empty_slot_left_boots"
+    },
+    "slot_boots2@trinkets.trinkets_slots": {
+        "texture": "textures/ui/empty_slot_right_boots"
     },
     "slot_gauntlet@trinkets.trinkets_slots": {
         "texture": "textures/ui/empty_gauntlet"
@@ -287,6 +302,9 @@
         "texture": "textures/ui/empty_necklace"
     },
     "slot_ring@trinkets.trinkets_slots": {
+        "texture": "textures/ui/empty_ring"
+    },
+    "slot_ring2@trinkets.trinkets_slots": {
         "texture": "textures/ui/empty_ring"
     },
     "slot_main_ring@trinkets.trinkets_slots": {
@@ -306,6 +324,18 @@
     },
     "slot_amulet@trinkets.trinkets_slots": {
         "texture": "textures/ui/empty_amulet"
+    },
+    "slot_face@trinkets.trinkets_slots": {
+        "texture": "textures/ui/empty_slot_face"
+    },
+    "slot_earring@trinkets.trinkets_slots": {
+        "texture": "textures/ui/empty_slot_ring"
+    },
+    "slot_belt@trinkets.trinkets_slots": {
+        "texture": "textures/ui/empty_slot_belt"
+    },
+    "slot_heavyring@trinkets.trinkets_slots": {
+        "texture": "textures/ui/empty_main_ring"
     },
     "trinket_panel": {
         "type": "panel",

@@ -266,6 +266,7 @@ export function displayStats(player) {
     const form = new ActionFormData()
         .title('§6§lAll Stats:')
         .body(text)
+        .button('Close');
     form.show(player)
 }
 

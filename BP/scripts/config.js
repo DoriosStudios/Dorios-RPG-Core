@@ -16,8 +16,10 @@ export const manaBarFrames = ['', '', '', '', '', '', '', '
 
 export const slots = {
     head: 0,
+    hat: 0,
     body: 1,
-    feet: 2,
+    feet: 2,       // legacy alias for boots1
+    boots1: 2,
     necklace: 3,
     ring: 4,
     charm: 5,
@@ -27,7 +29,14 @@ export const slots = {
     doll: 9,
     witherring: 10,
     archaiccharm: 11,
-    amulet: 12
+    amulet: 12,
+    face: 13,
+    earring: 14,
+    belt: 15,
+    ring2: 16,
+    heavyring: 17,
+    boots2: 18,
+    charm2: 19
 };
 
 export const statsConfig = {
